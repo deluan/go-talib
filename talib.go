@@ -5871,21 +5871,30 @@ func Sum(inReal []float64, inTimePeriod int) []float64 {
 //    NOTE: The number of Heikin-Ashi candles will always be one less than the number of provided candles, due to the fact
 //          that a previous candle is necessary to calculate the Heikin-Ashi candle, therefore the first provided candle is not considered
 //          as "current candle" in the algorithm, but only as "previous candle".
+// Changed to comply to these rules: https://school.stockcharts.com/doku.php?id=chart_analysis:heikin_ashi (same used by TradingView)
 func HeikinashiCandles(highs []float64, opens []float64, closes []float64, lows []float64) ([]float64, []float64, []float64, []float64) {
 	N := len(highs)
+	if N == 0 {
+		return nil, nil, nil, nil
+	}
 
 	heikinHighs := make([]float64, N)
 	heikinOpens := make([]float64, N)
 	heikinCloses := make([]float64, N)
 	heikinLows := make([]float64, N)
 
+	heikinCloses[0] = (highs[0] + opens[0] + closes[0] + lows[0]) / 4
+	heikinOpens[0] = (opens[0] + closes[0]) / 2
+	heikinHighs[0] = highs[0]
+	heikinLows[0] = lows[0]
+
 	for currentCandle := 1; currentCandle < N; currentCandle++ {
 		previousCandle := currentCandle - 1
 
-		heikinHighs[currentCandle] = math.Max(highs[currentCandle], math.Max(opens[currentCandle], closes[currentCandle]))
-		heikinOpens[currentCandle] = (opens[previousCandle] + closes[previousCandle]) / 2
 		heikinCloses[currentCandle] = (highs[currentCandle] + opens[currentCandle] + closes[currentCandle] + lows[currentCandle]) / 4
-		heikinLows[currentCandle] = math.Min(highs[currentCandle], math.Min(opens[currentCandle], closes[currentCandle]))
+		heikinOpens[currentCandle] = (heikinOpens[previousCandle] + heikinCloses[previousCandle]) / 2
+		heikinHighs[currentCandle] = math.Max(highs[currentCandle], math.Max(heikinOpens[currentCandle], heikinCloses[currentCandle]))
+		heikinLows[currentCandle] = math.Min(lows[currentCandle], math.Min(heikinOpens[currentCandle], heikinCloses[currentCandle]))
 	}
 
 	return heikinHighs, heikinOpens, heikinCloses, heikinLows
